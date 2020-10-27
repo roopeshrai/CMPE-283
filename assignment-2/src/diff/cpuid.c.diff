@@ -1,0 +1,43 @@
+diff --git a/assignment-2/src/../../../linux-5.9.1-c/linux-5.9.1/arch/x86/kvm/cpuid.c b/assignment-2/src/cpuid.c
+index 3fd6eec..0363139 100644
+--- a/assignment-2/src/../../../linux-5.9.1-c/linux-5.9.1/arch/x86/kvm/cpuid.c
++++ b/assignment-2/src/cpuid.c
+@@ -18,6 +18,7 @@
+ #include <asm/processor.h>
+ #include <asm/user.h>
+ #include <asm/fpu/xstate.h>
++#include <asm/atomic.h>
+ #include "cpuid.h"
+ #include "lapic.h"
+ #include "mmu.h"
+@@ -31,6 +32,9 @@
+ u32 kvm_cpu_caps[NCAPINTS] __read_mostly;
+ EXPORT_SYMBOL_GPL(kvm_cpu_caps);
+ 
++atomic_t exit_counters = ATOMIC_INIT(0);
++EXPORT_SYMBOL(exit_counters);
++
+ static u32 xstate_required_size(u64 xstate_bv, bool compacted)
+ {
+ 	int feature_bit = 0;
+@@ -1081,7 +1085,19 @@ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
+ 
+ 	eax = kvm_rax_read(vcpu);
+ 	ecx = kvm_rcx_read(vcpu);
+-	kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, false);
++
++        /*Roopesh: Following code modified for assignment 2
++        */
++        if (eax == 0x4fffffff){
++		printk(KERN_INFO "CMPE283-DEBUG: EAX=0x4fffffff, Update registers");
++		kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
++		printk(KERN_INFO "CMPE283-DEBUG: Updating exit counters %u to EAX", atomic_read(&exit_counters));
++		eax = atomic_read(&exit_counters);
++		printk(KERN_INFO "CMPE283-DEBUG: Updated EAX=%u\n", eax);
++        }
++        else {
++		kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, false);
++        }
+ 	kvm_rax_write(vcpu, eax);
+ 	kvm_rbx_write(vcpu, ebx);
+ 	kvm_rcx_write(vcpu, ecx);

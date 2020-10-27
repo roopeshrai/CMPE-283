@@ -1,0 +1,38 @@
+diff --git a/assignment-2/src/../../../linux-5.9.1-c/linux-5.9.1/arch/x86/kvm/vmx/vmx.c b/assignment-2/src/vmx.c
+index 96979c0..369f70f 100644
+--- a/assignment-2/src/../../../linux-5.9.1-c/linux-5.9.1/arch/x86/kvm/vmx/vmx.c
++++ b/assignment-2/src/vmx.c
+@@ -47,6 +47,7 @@
+ #include <asm/spec-ctrl.h>
+ #include <asm/virtext.h>
+ #include <asm/vmx.h>
++#include <asm/atomic.h>
+ 
+ #include "capabilities.h"
+ #include "cpuid.h"
+@@ -207,6 +208,8 @@ static const struct {
+ #define L1D_CACHE_ORDER 4
+ static void *vmx_l1d_flush_pages;
+ 
++extern atomic_t exit_counters;
++
+ static int vmx_setup_l1d_flush(enum vmx_l1d_flush_state l1tf)
+ {
+ 	struct page *page;
+@@ -5987,10 +5990,16 @@ void dump_vmcs(void)
+  */
+ static int vmx_handle_exit(struct kvm_vcpu *vcpu, fastpath_t exit_fastpath)
+ {
++
+ 	struct vcpu_vmx *vmx = to_vmx(vcpu);
+ 	u32 exit_reason = vmx->exit_reason;
+ 	u32 vectoring_info = vmx->idt_vectoring_info;
+ 
++        /*
++         * Keep an counter for exit counts.
++         */
++        atomic_inc(&exit_counters);
++
+ 	/*
+ 	 * Flush logged GPAs PML buffer, this will make dirty_bitmap more
+ 	 * updated. Another good is, in kvm_vm_ioctl_get_dirty_log, before
